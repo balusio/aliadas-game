@@ -16,9 +16,10 @@ if( ! class_exists('aliadasGame') ) :
 	// vars
 class aliadasGame {
 
+  	public static $db;
     function __construct(){
         global $wpdb;
-        $this->db = $wpdb;
+        aliadasGame::$db = $wpdb;
         
     }
 
@@ -27,16 +28,18 @@ class aliadasGame {
 
 	function initialize(){
 		
-		$table_name= $this->db->prefix.'gameScore';
+		$table_name= aliadasGame::$db->prefix.'gameScore';
 		
-		if($this->db->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+		if(aliadasGame::$db->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
 		     //table not in database. Create new table
-		     $charset_collate = $this->db->get_charset_collate();
+		     $charset_collate = aliadasGame::$db->get_charset_collate();
 		 
 		     $sql = "CREATE TABLE $table_name (
 		          id mediumint(9) NOT NULL AUTO_INCREMENT,
 		          user_id mediumint(9) NOT NULL,
 		          user_score mediumint(9) NOT NULL,
+		          user_rankposs mediumint(9),
+		          user_time varchar(255),
 		          UNIQUE KEY id (id)
 		     ) $charset_collate;";
 		     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -44,15 +47,60 @@ class aliadasGame {
 		}
 	}
 
-	public static function checkUserState($user_id){
-		
-		$table_name= $this->db->prefix.'gameScore';
 
-		$current_user = $this->db->get_row( "SELECT * FROM $table_name WHERE user_id = $user_id" );
-		return $current_user;
-		/*echo 'current_user is equal to =' .$user_id;*/
+	public static function checkUserState($user_id){
+		$table_name= aliadasGame::$db->prefix.'gameScore';
+		$current_user = aliadasGame::$db->get_row( "SELECT * FROM $table_name WHERE user_id = $user_id" );
+		
+		if($current_user){
+			print_r($current_user);
+		}
+		else{
+			//REGISTER GAME
+			$added_user = aliadasGame::$db->insert($table_name, array(
+			    'user_id' => $user_id,
+			    'user_score' => 200
+			));
+
+			echo $added_user . "AGREGADO EL USUARIO";
+
+
+		}
 
 	}
+
+	public static function updateUserScore($user_id,$timePassed){
+
+		$table_name= aliadasGame::$db->prefix.'gameScore';
+		$score= 350;
+		$upadteScore = aliadasGame::$db->query( "UPDATE $table_name set user_score = user_score + ". $score . ", user_time = '". $timePassed ."' WHERE user_id = " . $user_id );
+		print_r($upadteScore);
+	}
+
+	public static function checkExchange($user_id,$price){
+		
+		$int_price = (int)$price;
+		$table_name= aliadasGame::$db->prefix.'gameScore';
+		$upadtePrice = aliadasGame::$db->query( "UPDATE $table_name set 
+			user_score = IF(user_score >= ". $int_price . ", user_score - ". $int_price . ",user_score)
+			WHERE user_id = " . $user_id );
+
+		if($upadtePrice && !empty($user_id)){
+			return true;
+		}
+
+
+		else{
+			return false;
+		}
+
+
+
+
+
+	}
+
+
 }
 
 function game() {
@@ -64,16 +112,6 @@ function game() {
 		$aliadasGame = new aliadasGame();
 		
 		$aliadasGame->initialize();
-
-/*		//CHECK USER TO REGISTER AND SET POINTS
-		if ( ! function_exists( 'chekUserSetted' ) ) {
-
-		    function chekUserSetted($user_id) {
-		       return $aliadasGame::checkUserState($user_id);
-
-		    }
-		}*/
-
 		
 	}
 	
