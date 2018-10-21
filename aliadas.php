@@ -1,8 +1,8 @@
 <?php
 /*
 Plugin Name: Aliadas Game
-Plugin URI: https://www.advancedcustomfields.com/
-Description: game aliadas 1.0
+Plugin URI: https://github.com/balusio/aliadas-game
+Description: Game Aliadas 1.3
 Author: Jorge Manzano
 Author URI: http://balu.ninja/
 Copyright: MIT LICENSE
@@ -23,7 +23,7 @@ class aliadasGame {
         
     }
 
-	var $version = '1.0';
+	var $version = '1.3';
 
 
 	function initialize(){
@@ -40,7 +40,7 @@ class aliadasGame {
 		          user_score mediumint(9) NOT NULL,
 		          user_rankposs mediumint(9),
 		          user_start datetime,
-		          user_end datetime,
+		          user_end datetime DEFAULT NULL,
 		          UNIQUE KEY id (id)
 		     ) $charset_collate;";
 		     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -56,7 +56,7 @@ class aliadasGame {
 
 		if($current_user){
 			
-			$upadteScore = aliadasGame::$db->query( "UPDATE $table_name set user_start = '". $timeStart ."' WHERE user_id = " . $user_id );
+			$updateScore = aliadasGame::$db->query( "UPDATE $table_name set user_start = '". $timeStart ."', user_end = NULL WHERE user_id = " . $user_id );
 		}
 		else{
 			//REGISTER GAME
@@ -79,11 +79,12 @@ class aliadasGame {
 		$table_name= aliadasGame::$db->prefix.'gameScore';
 		$timePassed = date("Y-m-d H:i:s");
 		$score= 0;
-		$upadteScore = aliadasGame::$db->query( "UPDATE $table_name set user_score = user_score + ". $score . ", user_end = '". $timePassed ."' WHERE user_id = " . $user_id );
-		/*print_r($upadteScore);*/
+		$updateScore = aliadasGame::$db->query( "UPDATE $table_name set user_end = '". $timePassed ."' WHERE user_id = " . $user_id );
+		
+		/*print_r($updateScore);*/
 	}
 
-	public static function checkExchange($user_id,$price){
+	public static function checkExchange($user_id,$price,$title){
 		
 		$int_price = (int)$price;
 		$table_name= aliadasGame::$db->prefix.'gameScore';
@@ -92,35 +93,30 @@ class aliadasGame {
 			WHERE user_id = " . $user_id );
 
 		if($upadtePrice && !empty($user_id)){
+
 			return true;
 		}
-
-
 		else{
 			return false;
 		}
 
-
-
-
-
 	}
-
+	
 	public static function monthlyUpdate(){
 		$values = [1000,800,600,500,400,300,200,100,100,100];
 		$table_name= aliadasGame::$db->prefix.'gameScore';
-		$lasts_users = aliadasGame::$db->get_results( "SELECT user_id, user_score, TIMESTAMPDIFF(SECOND,user_start,user_end) as TIMEDOWN FROM $table_name ORDER BY TIMEDOWN ASC LIMIT 10");	
+		$lasts_users = aliadasGame::$db->get_results( "SELECT user_id, user_score, TIMESTAMPDIFF(SECOND,user_start,user_end) as TIMEDOWN FROM $table_name WHERE user_end IS NOT NULL ORDER BY TIMEDOWN ASC LIMIT 10");	
 		
 		$i = 0;
 		foreach ($lasts_users as $current_user) {	
 
-			$upadteScore = aliadasGame::$db->query( "UPDATE $table_name set user_score = user_score + ". $values[$i] . " WHERE user_id = " . $current_user->user_id);
+			$updateScore = aliadasGame::$db->query( "UPDATE $table_name set user_score = user_score + ". $values[$i] . " WHERE user_id = " . $current_user->user_id);
 
 			$i++;
 		}
+		echo "string";
 
 	}
-
 
 }
 
